@@ -123,12 +123,18 @@ def check_password():
     if st.session_state.get("authenticated"):
         return True
 
-    correct_password = os.environ.get("APP_PASSWORD", "MAN2026").strip()
+    valid_passwords = ["MAN2026", "RIDA2026"]
+    
+    env_pwd = os.environ.get("APP_PASSWORD")
+    if env_pwd:
+        valid_passwords.append(env_pwd.strip())
     try:
         if "APP_PASSWORD" in st.secrets:
-            correct_password = str(st.secrets["APP_PASSWORD"]).strip()
+            valid_passwords.append(str(st.secrets["APP_PASSWORD"]).strip())
     except Exception:
         pass
+
+    valid_passwords = [p.upper() for p in valid_passwords if p]
 
     st.markdown("""
     <div style="max-width: 480px; margin: 40px auto 20px auto; background: #ffffff; border: 1px solid #e2e8f0; border-top: 6px solid #1e40af; border-radius: 12px; padding: 30px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.06);">
@@ -151,7 +157,8 @@ def check_password():
             submit_btn = st.form_submit_button("🔓 Connexion", use_container_width=True)
             
             if submit_btn or pwd_input:
-                if pwd_input and pwd_input.strip().upper() == correct_password.upper():
+                user_val = pwd_input.strip().upper() if pwd_input else ""
+                if user_val in valid_passwords:
                     st.session_state["authenticated"] = True
                     st.rerun()
                 elif submit_btn:
@@ -545,7 +552,7 @@ elif mode == "⚙️ Configuration & Synchro":
     st.json({
         "Application": "SEFACAR Tank Progress Digitalization",
         "Theme": "Light Executive",
-        "Authentication": "Secured Mobile Compatible",
+        "Authentication": "MAN2026 & Rida2026 Enabled",
         "Database Engine": "SQLite 3",
         "Total Citernes": citerne_count,
         "Total Étapes Cataloguées": etape_count,
