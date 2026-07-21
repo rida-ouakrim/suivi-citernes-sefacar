@@ -28,7 +28,7 @@ st.markdown("""
         color: #0f172a;
     }
     
-    /* Responsive Spacing & Header Card */
+    /* Header Card (Hidden on Mobile) */
     .header-card {
         background: #ffffff;
         border: 1px solid #e2e8f0;
@@ -139,20 +139,18 @@ st.markdown("""
         margin-bottom: 8px !important;
     }
 
-    /* Media Query Adjustments for Small Mobile Displays */
-    @media (max-width: 640px) {
-        .header-title {
-            font-size: 17px !important;
-        }
-        .header-subtitle {
-            font-size: 11px !important;
-        }
+    /* HIDE Header Banner Completely on Mobile Screens */
+    @media (max-width: 768px) {
         .header-card {
-            padding: 10px 12px !important;
-            margin-bottom: 10px !important;
+            display: none !important;
+        }
+        .block-container {
+            padding-top: 1rem !important;
+            padding-bottom: 1rem !important;
         }
         h3 {
             font-size: 18px !important;
+            margin-top: 0 !important;
         }
         h4 {
             font-size: 15px !important;
@@ -216,13 +214,13 @@ def check_password():
 if not check_password():
     st.stop()
 
-# Compact Mobile Application Header
+# Application Header (Visible on PC, Automatically Hidden on Mobile via CSS)
 st.markdown("""
 <div class="header-card">
     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
         <div>
-            <h1 class="header-title">🚛 SEFACAR Suivi</h1>
-            <div class="header-subtitle">Digitalisation du suivi terrain & administration</div>
+            <h1 class="header-title">🚛 SEFACAR — Suivi de Production des Citernes</h1>
+            <div class="header-subtitle">Digitalisation du suivi terrain en temps réel & tableau de bord administratif</div>
         </div>
         <div style="text-align: right; font-size: 11px; color: #1e40af; font-weight: 700; background: #eff6ff; padding: 4px 10px; border-radius: 12px; border: 1px solid #bfdbfe;">
             ⚡ En Direct
@@ -254,8 +252,6 @@ st.sidebar.markdown("<div style='font-size: 11px; color: #64748b; margin-top: 15
 # MODULE 1: MODE TOURNÉE (TERRAIN / MOBILE)
 # ==========================================
 if mode == "📱 Mode Tournée (Terrain)":
-    st.markdown("### 📱 Mode Tournée Terrain")
-    
     # Touch-Friendly Segmented Selector for Citerne Type
     type_citerne_raw = st.radio(
         "Type de Citerne :",
@@ -364,7 +360,6 @@ if mode == "📱 Mode Tournée (Terrain)":
                             
                             # Touch-optimized Select Slider with discrete percentage points
                             preset_options = [0.0, 25.0, 50.0, 75.0, 100.0]
-                            # Closest option
                             closest_val = min(preset_options, key=lambda x: abs(x - s_pct))
                             
                             c_slider, c_note = st.columns([3, 2])
