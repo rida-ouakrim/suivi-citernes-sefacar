@@ -118,23 +118,32 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Authentication Function
+# Authentication Function (100% Hidden from GitHub)
 def check_password():
     if st.session_state.get("authenticated"):
         return True
 
-    valid_passwords = ["MAN2026", "RIDA2026"]
+    valid_passwords = []
     
+    # 1. Read from Environment Variables
     env_pwd = os.environ.get("APP_PASSWORD")
     if env_pwd:
-        valid_passwords.append(env_pwd.strip())
+        for p in env_pwd.split(","):
+            if p.strip():
+                valid_passwords.append(p.strip().upper())
+                
+    # 2. Read from Streamlit secrets (.streamlit/secrets.toml)
     try:
         if "APP_PASSWORD" in st.secrets:
-            valid_passwords.append(str(st.secrets["APP_PASSWORD"]).strip())
+            sec_pwd = str(st.secrets["APP_PASSWORD"])
+            for p in sec_pwd.split(","):
+                if p.strip():
+                    valid_passwords.append(p.strip().upper())
     except Exception:
         pass
 
-    valid_passwords = [p.upper() for p in valid_passwords if p]
+    # Clean unique passwords list
+    valid_passwords = list(set(valid_passwords))
 
     st.markdown("""
     <div style="max-width: 480px; margin: 40px auto 20px auto; background: #ffffff; border: 1px solid #e2e8f0; border-top: 6px solid #1e40af; border-radius: 12px; padding: 30px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.06);">
@@ -158,7 +167,7 @@ def check_password():
             
             if submit_btn or pwd_input:
                 user_val = pwd_input.strip().upper() if pwd_input else ""
-                if user_val in valid_passwords:
+                if user_val and user_val in valid_passwords:
                     st.session_state["authenticated"] = True
                     st.rerun()
                 elif submit_btn:
@@ -552,7 +561,7 @@ elif mode == "⚙️ Configuration & Synchro":
     st.json({
         "Application": "SEFACAR Tank Progress Digitalization",
         "Theme": "Light Executive",
-        "Authentication": "MAN2026 & Rida2026 Enabled",
+        "Authentication": "Secured via Environment Variables / Secrets",
         "Database Engine": "SQLite 3",
         "Total Citernes": citerne_count,
         "Total Étapes Cataloguées": etape_count,
