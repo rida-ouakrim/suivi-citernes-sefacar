@@ -1,0 +1,13 @@
+runtime: custom
+env: flex
+
+network:
+  session_affinity: true
+
+automatic_scaling:
+  min_num_instances: 1
+  max_num_instances: 2
+
+resources:
+  cpu: 1
+  memory_gb: 2

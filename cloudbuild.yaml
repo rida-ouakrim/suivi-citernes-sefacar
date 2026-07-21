@@ -1,0 +1,28 @@
+steps:
+  # Build container image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/sefacar-suivi:$COMMIT_SHA', '.']
+
+  # Push container image to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/sefacar-suivi:$COMMIT_SHA']
+
+  # Deploy container image to Google Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'sefacar-suivi'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/sefacar-suivi:$COMMIT_SHA'
+      - '--region'
+      - 'europe-west1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--port'
+      - '8501'
+
+images:
+  - 'gcr.io/$PROJECT_ID/sefacar-suivi:$COMMIT_SHA'
