@@ -141,19 +141,21 @@ def check_password():
     
     c1, c2, c3 = st.columns([1, 2, 1])
     with c2:
-        pwd_input = st.text_input(
-            "🔑 Code d'Accès",
-            type="password",
-            key="login_pwd_val",
-            placeholder="Code d'accès...",
-            label_visibility="collapsed"
-        )
-        if st.button("🔓 Connexion", use_container_width=True):
-            if pwd_input and pwd_input.strip() == correct_password:
-                st.session_state["authenticated"] = True
-                st.rerun()
-            else:
-                st.error("❌ Code d'accès incorrect. Veuillez réessayer.")
+        with st.form("login_form_mobile", clear_on_submit=False):
+            pwd_input = st.text_input(
+                "🔑 Code d'Accès",
+                type="password",
+                placeholder="Code d'accès...",
+                label_visibility="collapsed"
+            )
+            submit_btn = st.form_submit_button("🔓 Connexion", use_container_width=True)
+            
+            if submit_btn or pwd_input:
+                if pwd_input and pwd_input.strip().upper() == correct_password.upper():
+                    st.session_state["authenticated"] = True
+                    st.rerun()
+                elif submit_btn:
+                    st.error("❌ Code d'accès incorrect. Veuillez réessayer.")
     return False
 
 if not check_password():
@@ -543,7 +545,7 @@ elif mode == "⚙️ Configuration & Synchro":
     st.json({
         "Application": "SEFACAR Tank Progress Digitalization",
         "Theme": "Light Executive",
-        "Authentication": "Secured",
+        "Authentication": "Secured Mobile Compatible",
         "Database Engine": "SQLite 3",
         "Total Citernes": citerne_count,
         "Total Étapes Cataloguées": etape_count,
