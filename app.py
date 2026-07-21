@@ -28,27 +28,12 @@ st.markdown("""
         color: #0f172a;
     }
     
-    /* Header Card (Hidden on Mobile) */
-    .header-card {
-        background: #ffffff;
-        border: 1px solid #e2e8f0;
-        border-left: 6px solid #1e40af;
-        padding: 12px 16px;
-        border-radius: 10px;
-        margin-bottom: 15px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-    }
-    .header-title {
-        color: #0f172a;
-        font-size: 20px;
-        font-weight: 700;
-        margin: 0;
-        line-height: 1.2;
-    }
-    .header-subtitle {
-        color: #64748b;
-        font-size: 12px;
-        margin-top: 2px;
+    /* Remove default Streamlit top padding */
+    .block-container {
+        padding-top: 1rem !important;
+        padding-bottom: 1rem !important;
+        padding-left: 0.8rem !important;
+        padding-right: 0.8rem !important;
     }
     
     /* Mobile-Optimized KPI Cards */
@@ -105,10 +90,10 @@ st.markdown("""
     /* Mobile Tank Card Header */
     .tank-tour-header {
         background-color: #ffffff;
-        padding: 12px 15px;
+        padding: 10px 14px;
         border-radius: 8px;
         border: 1px solid #cbd5e1;
-        margin-bottom: 12px;
+        margin-bottom: 10px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.02);
     }
 
@@ -139,22 +124,14 @@ st.markdown("""
         margin-bottom: 8px !important;
     }
 
-    /* HIDE Header Banner Completely on Mobile Screens */
-    @media (max-width: 768px) {
-        .header-card {
-            display: none !important;
-        }
-        .block-container {
-            padding-top: 1rem !important;
-            padding-bottom: 1rem !important;
-        }
-        h3 {
-            font-size: 18px !important;
-            margin-top: 0 !important;
-        }
-        h4 {
-            font-size: 15px !important;
-        }
+    /* Titles styling */
+    h3 {
+        font-size: 18px !important;
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+    }
+    h4 {
+        font-size: 15px !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -214,21 +191,6 @@ def check_password():
 if not check_password():
     st.stop()
 
-# Application Header (Visible on PC, Automatically Hidden on Mobile via CSS)
-st.markdown("""
-<div class="header-card">
-    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
-        <div>
-            <h1 class="header-title">🚛 SEFACAR — Suivi de Production des Citernes</h1>
-            <div class="header-subtitle">Digitalisation du suivi terrain en temps réel & tableau de bord administratif</div>
-        </div>
-        <div style="text-align: right; font-size: 11px; color: #1e40af; font-weight: 700; background: #eff6ff; padding: 4px 10px; border-radius: 12px; border: 1px solid #bfdbfe;">
-            ⚡ En Direct
-        </div>
-    </div>
-</div>
-""", unsafe_allow_html=True)
-
 # Sidebar Navigation
 st.sidebar.markdown("<h2 style='color: #1e40af; font-size: 18px;'>Navigation</h2>", unsafe_allow_html=True)
 mode = st.sidebar.radio(
@@ -252,7 +214,7 @@ st.sidebar.markdown("<div style='font-size: 11px; color: #64748b; margin-top: 15
 # MODULE 1: MODE TOURNÉE (TERRAIN / MOBILE)
 # ==========================================
 if mode == "📱 Mode Tournée (Terrain)":
-    # Touch-Friendly Segmented Selector for Citerne Type
+    # Touch-Friendly Segmented Selector for Citerne Type (Placed at the very top)
     type_citerne_raw = st.radio(
         "Type de Citerne :",
         ["⛽ CARBURANT", "💧 EAU"],
