@@ -13,63 +13,64 @@ st.set_page_config(
     page_title="SEFACAR — Suivi des Citernes",
     page_icon="🚛",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
 # Initialize Database if not already done
 db.create_tables()
 
-# Custom CSS for Light SEFACAR Executive Theme
+# Custom Responsive Mobile-First CSS
 st.markdown("""
 <style>
-    /* Main Background & Font */
+    /* Main Background & Base Font */
     .stApp {
         background-color: #f8fafc;
         color: #0f172a;
     }
     
-    /* Header Card */
+    /* Responsive Spacing & Header Card */
     .header-card {
         background: #ffffff;
         border: 1px solid #e2e8f0;
         border-left: 6px solid #1e40af;
-        padding: 20px 25px;
-        border-radius: 12px;
-        margin-bottom: 25px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+        padding: 12px 16px;
+        border-radius: 10px;
+        margin-bottom: 15px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.03);
     }
     .header-title {
         color: #0f172a;
-        font-size: 26px;
+        font-size: 20px;
         font-weight: 700;
         margin: 0;
-        letter-spacing: 0.5px;
+        line-height: 1.2;
     }
     .header-subtitle {
         color: #64748b;
-        font-size: 14px;
-        margin-top: 4px;
+        font-size: 12px;
+        margin-top: 2px;
     }
     
-    /* KPI Cards */
+    /* Mobile-Optimized KPI Cards */
     .kpi-card {
         background: #ffffff;
         border: 1px solid #e2e8f0;
-        padding: 18px;
-        border-radius: 10px;
+        padding: 12px 8px;
+        border-radius: 8px;
         text-align: center;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+        margin-bottom: 8px;
     }
     .kpi-title {
         color: #64748b;
-        font-size: 13px;
+        font-size: 11px;
         font-weight: 600;
         text-transform: uppercase;
     }
     .kpi-value {
-        font-size: 28px;
+        font-size: 22px;
         font-weight: 800;
-        margin-top: 6px;
+        margin-top: 2px;
     }
     
     /* Status Badges */
@@ -77,43 +78,85 @@ st.markdown("""
         background-color: #dcfce7;
         color: #15803d;
         border: 1px solid #86efac;
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 13px;
-        font-weight: 600;
+        padding: 4px 10px;
+        border-radius: 16px;
+        font-size: 12px;
+        font-weight: 700;
     }
     .badge-in-progress {
         background-color: #fef3c7;
         color: #b45309;
         border: 1px solid #fde047;
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 13px;
-        font-weight: 600;
+        padding: 4px 10px;
+        border-radius: 16px;
+        font-size: 12px;
+        font-weight: 700;
     }
     .badge-not-started {
         background-color: #f1f5f9;
         color: #64748b;
         border: 1px solid #cbd5e1;
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 13px;
-        font-weight: 600;
+        padding: 4px 10px;
+        border-radius: 16px;
+        font-size: 12px;
+        font-weight: 700;
     }
     
-    /* Tour Card */
+    /* Mobile Tank Card Header */
     .tank-tour-header {
         background-color: #ffffff;
-        padding: 15px 20px;
+        padding: 12px 15px;
         border-radius: 8px;
-        border: 1px solid #e2e8f0;
-        margin-bottom: 20px;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+        border: 1px solid #cbd5e1;
+        margin-bottom: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
     }
 
+    /* Touch-Friendly Large Buttons */
     div.stButton > button {
-        border-radius: 6px;
+        border-radius: 8px;
         font-weight: 600;
+        padding: 10px 14px;
+        min-height: 44px;
+    }
+    
+    /* Touch Form Submit Button Primary Styling */
+    div.stFormSubmitButton > button {
+        background-color: #1e40af !important;
+        color: #ffffff !important;
+        font-size: 16px !important;
+        font-weight: 700 !important;
+        border-radius: 10px !important;
+        padding: 14px !important;
+        box-shadow: 0 4px 12px rgba(30, 64, 175, 0.25) !important;
+    }
+
+    /* Expanders Padding on Mobile */
+    .stExpander {
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 8px !important;
+        background-color: #ffffff !important;
+        margin-bottom: 8px !important;
+    }
+
+    /* Media Query Adjustments for Small Mobile Displays */
+    @media (max-width: 640px) {
+        .header-title {
+            font-size: 17px !important;
+        }
+        .header-subtitle {
+            font-size: 11px !important;
+        }
+        .header-card {
+            padding: 10px 12px !important;
+            margin-bottom: 10px !important;
+        }
+        h3 {
+            font-size: 18px !important;
+        }
+        h4 {
+            font-size: 15px !important;
+        }
     }
 </style>
 """, unsafe_allow_html=True)
@@ -124,15 +167,12 @@ def check_password():
         return True
 
     valid_passwords = []
-    
-    # 1. Read from Environment Variables
     env_pwd = os.environ.get("APP_PASSWORD")
     if env_pwd:
         for p in env_pwd.split(","):
             if p.strip():
                 valid_passwords.append(p.strip().upper())
                 
-    # 2. Read from Streamlit secrets (.streamlit/secrets.toml)
     try:
         if "APP_PASSWORD" in st.secrets:
             sec_pwd = str(st.secrets["APP_PASSWORD"])
@@ -142,19 +182,18 @@ def check_password():
     except Exception:
         pass
 
-    # Clean unique passwords list
     valid_passwords = list(set(valid_passwords))
 
     st.markdown("""
-    <div style="max-width: 480px; margin: 40px auto 20px auto; background: #ffffff; border: 1px solid #e2e8f0; border-top: 6px solid #1e40af; border-radius: 12px; padding: 30px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.06);">
-        <h2 style="color: #0f172a; margin-bottom: 4px; font-size: 26px;">🚛 SEFACAR</h2>
-        <h4 style="color: #1e40af; font-size: 15px; margin-top: 0;">Plateforme de Suivi des Citernes</h4>
-        <hr style="margin: 20px 0; border-color: #f1f5f9;">
-        <p style="color: #64748b; font-size: 13px; margin-bottom: 10px;">Veuillez entrer le code d'accès sécurisé pour accéder au système.</p>
+    <div style="max-width: 420px; margin: 20px auto; background: #ffffff; border: 1px solid #e2e8f0; border-top: 6px solid #1e40af; border-radius: 12px; padding: 24px 20px; text-align: center; box-shadow: 0 6px 18px rgba(0,0,0,0.05);">
+        <h2 style="color: #0f172a; margin-bottom: 2px; font-size: 22px;">🚛 SEFACAR</h2>
+        <h4 style="color: #1e40af; font-size: 14px; margin-top: 0;">Suivi de Production des Citernes</h4>
+        <hr style="margin: 15px 0; border-color: #f1f5f9;">
+        <p style="color: #64748b; font-size: 12px; margin-bottom: 12px;">Entrez votre code d'accès pour commencer la tournée.</p>
     </div>
     """, unsafe_allow_html=True)
     
-    c1, c2, c3 = st.columns([1, 2, 1])
+    c1, c2, c3 = st.columns([1, 10, 1])
     with c2:
         with st.form("login_form_mobile", clear_on_submit=False):
             pwd_input = st.text_input(
@@ -163,7 +202,7 @@ def check_password():
                 placeholder="Code d'accès...",
                 label_visibility="collapsed"
             )
-            submit_btn = st.form_submit_button("🔓 Connexion", use_container_width=True)
+            submit_btn = st.form_submit_button("🔓 Se Connecter", use_container_width=True)
             
             if submit_btn or pwd_input:
                 user_val = pwd_input.strip().upper() if pwd_input else ""
@@ -171,22 +210,22 @@ def check_password():
                     st.session_state["authenticated"] = True
                     st.rerun()
                 elif submit_btn:
-                    st.error("❌ Code d'accès incorrect. Veuillez réessayer.")
+                    st.error("❌ Code d'accès incorrect.")
     return False
 
 if not check_password():
     st.stop()
 
-# Application Header
+# Compact Mobile Application Header
 st.markdown("""
 <div class="header-card">
-    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
         <div>
-            <h1 class="header-title">🚛 SEFACAR — Suivi de Production des Citernes</h1>
-            <div class="header-subtitle">Digitalisation du suivi terrain en temps réel & tableau de bord administratif</div>
+            <h1 class="header-title">🚛 SEFACAR Suivi</h1>
+            <div class="header-subtitle">Digitalisation du suivi terrain & administration</div>
         </div>
-        <div style="text-align: right; font-size: 12px; color: #1e40af; font-weight: 600; background: #eff6ff; padding: 6px 14px; border-radius: 20px; border: 1px solid #bfdbfe;">
-            ⚡ Synchro Temps Réel Active
+        <div style="text-align: right; font-size: 11px; color: #1e40af; font-weight: 700; background: #eff6ff; padding: 4px 10px; border-radius: 12px; border: 1px solid #bfdbfe;">
+            ⚡ En Direct
         </div>
     </div>
 </div>
@@ -195,10 +234,10 @@ st.markdown("""
 # Sidebar Navigation
 st.sidebar.markdown("<h2 style='color: #1e40af; font-size: 18px;'>Navigation</h2>", unsafe_allow_html=True)
 mode = st.sidebar.radio(
-    "Choisissez un module :",
+    "Module :",
     [
         "📱 Mode Tournée (Terrain)",
-        "📊 Tableau de Bord (Administration)",
+        "📊 Tableau de Bord (Admin)",
         "📥 Exportation & Rapport du Jour",
         "⚙️ Configuration & Synchro"
     ]
@@ -209,22 +248,28 @@ if st.sidebar.button("🔒 Déconnexion", use_container_width=True):
     st.session_state["authenticated"] = False
     st.rerun()
 
-st.sidebar.markdown("<div style='font-size: 12px; color: #64748b; margin-top: 15px;'><b>SEFACAR v2.0 Light Edition</b><br>Gestionnaire de Suivi des Citernes</div>", unsafe_allow_html=True)
+st.sidebar.markdown("<div style='font-size: 11px; color: #64748b; margin-top: 15px;'><b>SEFACAR v2.0 Mobile Optimized</b></div>", unsafe_allow_html=True)
 
 # ==========================================
 # MODULE 1: MODE TOURNÉE (TERRAIN / MOBILE)
 # ==========================================
 if mode == "📱 Mode Tournée (Terrain)":
-    st.markdown("### 📱 Mode Tournée — Saisie Rapide de Progression")
-    st.caption("Sélectionnez une citerne pour mettre à jour l'avancement de chaque étape et enregistrer vos observations.")
+    st.markdown("### 📱 Mode Tournée Terrain")
     
-    col_filters1, col_filters2, col_filters3 = st.columns([1, 1, 2])
+    # Touch-Friendly Segmented Selector for Citerne Type
+    type_citerne_raw = st.radio(
+        "Type de Citerne :",
+        ["⛽ CARBURANT", "💧 EAU"],
+        horizontal=True,
+        key="tour_type_radio"
+    )
+    type_citerne = "CARBURANT" if "CARBURANT" in type_citerne_raw else "EAU"
+    
+    col_filters1, col_filters2 = st.columns([1, 1])
     with col_filters1:
-        type_citerne = st.selectbox("Type de Citerne", ["CARBURANT", "EAU"], key="tour_type")
+        statut_filter = st.selectbox("Statut", ["Tous", "En cours", "Non commencé", "Terminé"], key="tour_statut")
     with col_filters2:
-        statut_filter = st.selectbox("Filtrer par Statut", ["Tous", "En cours", "Non commencé", "Terminé"], key="tour_statut")
-    with col_filters3:
-        search_query = st.text_input("🔍 Rechercher une citerne (ex: CC11, CE005)", key="tour_search")
+        search_query = st.text_input("🔍 Rechercher Code", placeholder="ex: CC11", key="tour_search")
         
     df_citernes = db.get_summary_dataframe(type_citerne)
     
@@ -236,10 +281,10 @@ if mode == "📱 Mode Tournée (Terrain)":
     citerne_codes = df_citernes['code'].tolist()
     
     if not citerne_codes:
-        st.warning("⚠️ Aucune citerne ne correspond aux critères de recherche.")
+        st.warning("⚠️ Aucune citerne trouvée.")
     else:
         selected_code = st.selectbox(
-            f"📋 Sélectionnez la Citerne ({len(citerne_codes)} disponibles) :",
+            f"📋 Citerne à inspecter ({len(citerne_codes)}) :",
             citerne_codes,
             key="selected_citerne_code"
         )
@@ -261,10 +306,10 @@ if mode == "📱 Mode Tournée (Terrain)":
                 
             st.markdown(f"""
             <div class="tank-tour-header">
-                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
                     <div>
-                        <h2 style="margin:0; color:#0f172a; font-size:22px;">Citerne <b>{selected_code}</b> ({type_citerne})</h2>
-                        <div style="font-size:13px; color:#64748b; margin-top:4px;">Dernière mise à jour : {citerne_info.get('updated_at', 'N/A')}</div>
+                        <span style="font-size: 20px; font-weight: 800; color: #0f172a;">{selected_code}</span>
+                        <span style="font-size: 12px; color: #64748b; margin-left: 6px;">({type_citerne})</span>
                     </div>
                     <div>
                         {badge_html}
@@ -275,35 +320,39 @@ if mode == "📱 Mode Tournée (Terrain)":
             
             st.progress(global_pct / 100.0)
             
-            st.markdown("#### 💬 Remarques / Observations Générales sur la Citerne")
+            # General Comment Section
             current_citerne_comment = citerne_info.get('comments', '') or ''
-            new_citerne_comment = st.text_area(
-                "Commentaire Général",
-                value=current_citerne_comment,
-                placeholder="Ex: Fin séchage prévue le 22/07, Démontage validé par l'inspecteur...",
-                key=f"citerne_comment_{selected_code}"
-            )
-            
-            if new_citerne_comment != current_citerne_comment:
-                if st.button("💾 Enregistrer le Commentaire Général", key="save_citerne_comment"):
-                    db.update_citerne_comment(selected_code, new_citerne_comment)
-                    st.toast(f"✅ Commentaire général enregistré pour {selected_code} !", icon="💾")
-                    st.rerun()
+            with st.expander("💬 Remarques / Observations sur la Citerne", expanded=bool(current_citerne_comment)):
+                new_citerne_comment = st.text_area(
+                    "Note générale",
+                    value=current_citerne_comment,
+                    placeholder="Ex: Fin séchage prévue le 22/07...",
+                    key=f"citerne_comment_{selected_code}",
+                    label_visibility="collapsed"
+                )
+                if new_citerne_comment != current_citerne_comment:
+                    if st.button("💾 Enregistrer la note", key="save_citerne_comment", use_container_width=True):
+                        db.update_citerne_comment(selected_code, new_citerne_comment)
+                        st.toast(f"✅ Note enregistrée pour {selected_code} !", icon="💾")
+                        st.rerun()
                     
-            st.markdown("---")
-            st.markdown("#### 🛠️ Étapes de Fabrication & Progression")
-            st.caption("Dépliez les catégories ci-dessous pour ajuster l'avancement (% ) et ajouter des notes par étape.")
+            st.markdown("#### 🛠️ Étapes de Fabrication")
             
             categories = progress_df['category'].unique()
             
             with st.form(key=f"form_progress_{selected_code}"):
+                # Top Sticky-like submit button
+                top_save = st.form_submit_button("🚀 Enregistrer les Modifications", use_container_width=True)
+                st.markdown("<br>", unsafe_allow_html=True)
+                
                 step_updates = {}
                 
                 for cat in categories:
                     cat_steps = progress_df[progress_df['category'] == cat]
                     cat_avg_pct = round(cat_steps['completion_pct'].mean(), 1)
                     
-                    with st.expander(f"📁 **{cat}** — Progression Moyenne: {cat_avg_pct}% ({len(cat_steps)} étapes)", expanded=False):
+                    # Category Expander
+                    with st.expander(f"📁 **{cat}** — {cat_avg_pct}%", expanded=False):
                         for _, step_row in cat_steps.iterrows():
                             s_id = step_row['step_id']
                             s_name = step_row['step_name']
@@ -311,37 +360,41 @@ if mode == "📱 Mode Tournée (Terrain)":
                             s_pct = float(step_row['completion_pct'])
                             s_comment = str(step_row['step_comment']) if step_row['step_comment'] else ""
                             
-                            st.markdown(f"**{s_name}** *(Pondération: {s_cadence}h)*")
+                            st.markdown(f"**{s_name}** <span style='font-size:11px; color:#64748b;'>({s_cadence}h)</span>", unsafe_allow_html=True)
                             
-                            c1, c2 = st.columns([3, 2])
-                            with c1:
-                                new_pct = st.slider(
-                                    f"Avancement (%) - {s_name}",
-                                    min_value=0.0,
-                                    max_value=100.0,
-                                    value=s_pct,
-                                    step=5.0,
-                                    key=f"slider_{selected_code}_{s_id}",
+                            # Touch-optimized Select Slider with discrete percentage points
+                            preset_options = [0.0, 25.0, 50.0, 75.0, 100.0]
+                            # Closest option
+                            closest_val = min(preset_options, key=lambda x: abs(x - s_pct))
+                            
+                            c_slider, c_note = st.columns([3, 2])
+                            with c_slider:
+                                new_pct = st.select_slider(
+                                    f"Pct {s_name}",
+                                    options=[0.0, 25.0, 50.0, 75.0, 100.0],
+                                    value=closest_val,
+                                    key=f"select_slider_{selected_code}_{s_id}",
+                                    format_func=lambda x: f"{int(x)}%",
                                     label_visibility="collapsed"
                                 )
-                            with c2:
+                            with c_note:
                                 new_note = st.text_input(
-                                    f"Note - {s_name}",
+                                    f"Note {s_name}",
                                     value=s_comment,
-                                    placeholder="Note spécifique...",
+                                    placeholder="Note...",
                                     key=f"note_{selected_code}_{s_id}",
                                     label_visibility="collapsed"
                                 )
                                 
                             step_updates[s_id] = (new_pct, new_note)
-                            st.markdown("<hr style='margin: 8px 0; border-color: #e2e8f0;'>", unsafe_allow_html=True)
+                            st.markdown("<hr style='margin: 6px 0; border-color: #f1f5f9;'>", unsafe_allow_html=True)
                             
-                submit_button = st.form_submit_button("🚀 Valider et Enregistrer la Tournée", use_container_width=True)
+                bottom_save = st.form_submit_button("🚀 Enregistrer les Modifications", use_container_width=True)
                 
-                if submit_button:
+                if top_save or bottom_save:
                     for s_id, (u_pct, u_note) in step_updates.items():
                         db.update_step_progress(selected_code, s_id, u_pct, u_note)
-                    if new_citerne_comment != current_citerne_comment:
+                    if 'new_citerne_comment' in locals() and new_citerne_comment != current_citerne_comment:
                         db.update_citerne_comment(selected_code, new_citerne_comment)
                     st.toast(f"🎉 Modifications enregistrées avec succès pour {selected_code} !", icon="✅")
                     st.rerun()
@@ -349,11 +402,10 @@ if mode == "📱 Mode Tournée (Terrain)":
 # ==========================================
 # MODULE 2: TABLEAU DE BORD (ADMINISTRATION)
 # ==========================================
-elif mode == "📊 Tableau de Bord (Administration)":
-    st.markdown("### 📊 Tableau de Bord Administration (Temps Réel)")
-    st.caption("Vue globale des performances de production, suivi des citernes et détection des étapes bloquantes.")
+elif mode == "📊 Tableau de Bord (Admin)":
+    st.markdown("### 📊 Tableau de Bord Administration")
     
-    admin_type = st.selectbox("Vue par Type de Citerne", ["TOUS", "CARBURANT", "EAU"], key="admin_type_select")
+    admin_type = st.selectbox("Type", ["TOUS", "CARBURANT", "EAU"], key="admin_type_select")
     filter_type = None if admin_type == "TOUS" else admin_type
     
     df_summary = db.get_summary_dataframe(filter_type)
@@ -406,7 +458,7 @@ elif mode == "📊 Tableau de Bord (Administration)":
     col_chart1, col_chart2 = st.columns(2)
     
     with col_chart1:
-        st.markdown("#### 📉 Avancement Moyen par Phase de Fabrication")
+        st.markdown("#### 📉 Avancement Moyen par Phase")
         target_type = "CARBURANT" if admin_type == "TOUS" else admin_type
         df_cat = db.get_category_progress_df(target_type)
         
@@ -415,7 +467,7 @@ elif mode == "📊 Tableau de Bord (Administration)":
             x="weighted_completion",
             y="category",
             orientation="h",
-            labels={"weighted_completion": "Avancement Pondéré (%)", "category": "Phase / Catégorie"},
+            labels={"weighted_completion": "Avancement (%)", "category": "Phase"},
             color="weighted_completion",
             color_continuous_scale="Blues",
             text_auto=".1f"
@@ -425,13 +477,13 @@ elif mode == "📊 Tableau de Bord (Administration)":
             plot_bgcolor="rgba(0,0,0,0)",
             font_color="#0f172a",
             xaxis=dict(range=[0, 100]),
-            margin=dict(l=0, r=0, t=30, b=0),
-            height=380
+            margin=dict(l=0, r=0, t=20, b=0),
+            height=340
         )
         st.plotly_chart(fig_cat, use_container_width=True)
         
     with col_chart2:
-        st.markdown("#### 🍰 Répartition des Citernes par Statut")
+        st.markdown("#### 🍰 Répartition par Statut")
         statut_counts = df_summary['statut'].value_counts().reset_index()
         statut_counts.columns = ['Statut', 'Nombre']
         
@@ -451,19 +503,19 @@ elif mode == "📊 Tableau de Bord (Administration)":
             paper_bgcolor="rgba(0,0,0,0)",
             plot_bgcolor="rgba(0,0,0,0)",
             font_color="#0f172a",
-            margin=dict(l=0, r=0, t=30, b=0),
-            height=380
+            margin=dict(l=0, r=0, t=20, b=0),
+            height=340
         )
         st.plotly_chart(fig_pie, use_container_width=True)
         
     st.markdown("---")
-    st.markdown("#### 📋 Matrice d'Avancement Réal-Time de toutes les Citernes")
+    st.markdown("#### 📋 Matrice des Citernes")
     
     col_t1, col_t2 = st.columns([1, 2])
     with col_t1:
-        filter_status_table = st.selectbox("Filtrer par Statut", ["Tous", "En cours", "Non commencé", "Terminé"], key="table_status_filter")
+        filter_status_table = st.selectbox("Statut", ["Tous", "En cours", "Non commencé", "Terminé"], key="table_status_filter")
     with col_t2:
-        search_table = st.text_input("🔍 Rechercher une citerne...", key="table_search")
+        search_table = st.text_input("🔍 Rechercher", key="table_search")
         
     df_table_display = df_summary.copy()
     if filter_status_table != "Tous":
@@ -472,7 +524,7 @@ elif mode == "📊 Tableau de Bord (Administration)":
         df_table_display = df_table_display[df_table_display['code'].str.contains(search_table.strip(), case=False)]
         
     df_table_display = df_table_display[['code', 'type', 'statut', 'global_pct', 'completed_hours', 'total_cadence', 'comments', 'updated_at']]
-    df_table_display.columns = ['Code Citerne', 'Type', 'Statut', 'Avancement (%)', 'Heures Complétées', 'Total Cadence (h)', 'Observations / Commentaires', 'Dernière Maj']
+    df_table_display.columns = ['Code Citerne', 'Type', 'Statut', 'Avancement (%)', 'Heures Complétées', 'Total Cadence (h)', 'Observations', 'Dernière Maj']
     
     st.dataframe(
         df_table_display,
@@ -494,13 +546,13 @@ elif mode == "📊 Tableau de Bord (Administration)":
 # ==========================================
 elif mode == "📥 Exportation & Rapport du Jour":
     st.markdown("### 📥 Exportation & Rapport de l'État du Jour")
-    st.caption("Générez et téléchargez le rapport d'avancement quotidien au format Excel (.xlsx) ou CSV pour l'administration SEFACAR.")
+    st.caption("Générez et téléchargez le rapport d'avancement quotidien au format Excel (.xlsx) pour l'administration.")
     
-    export_type = st.radio("Sélectionnez le Type à Exporter :", ["TOUS (Carburant & Eau)", "CARBURANT uniquement", "EAU uniquement"], horizontal=True)
+    export_type = st.radio("Type à Exporter :", ["TOUS (Carburant & Eau)", "CARBURANT uniquement", "EAU uniquement"], horizontal=True)
     
     st.markdown("<br>", unsafe_allow_html=True)
     
-    if st.button("📊 Générer le Rapport Excel Complet de l'État du Jour", use_container_width=True):
+    if st.button("📊 Générer le Rapport Excel Complet", use_container_width=True):
         output = python_io.BytesIO()
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
             if export_type in ["TOUS (Carburant & Eau)", "CARBURANT uniquement"]:
@@ -528,7 +580,7 @@ elif mode == "📥 Exportation & Rapport du Jour":
         st.success("✅ Rapport Excel généré avec succès !")
         
     st.markdown("---")
-    st.markdown("#### 👁️ Aperçu des Données à Exporter (Synthèse)")
+    st.markdown("#### 👁️ Aperçu Synthèse")
     filter_t = None if export_type == "TOUS (Carburant & Eau)" else ("CARBURANT" if "CARBURANT" in export_type else "EAU")
     preview_df = db.get_summary_dataframe(filter_t)
     st.dataframe(preview_df, use_container_width=True, hide_index=True)
@@ -538,20 +590,15 @@ elif mode == "📥 Exportation & Rapport du Jour":
 # ==========================================
 elif mode == "⚙️ Configuration & Synchro":
     st.markdown("### ⚙️ Configuration & Synchronisation")
-    st.caption("Gérez la base de données et réinitialisez les données initiales depuis le fichier Excel d'origine.")
     
-    st.markdown("#### 🔄 Réinitialiser la Base de Données depuis `SUIVI CITERNE 2107.xlsx`")
-    st.warning("⚠️ Attention : La réinitialisation remplacera les données actuelles de la base par les données du fichier Excel d'origine.")
-    
-    if st.button("🔄 Lancer la Synchronisation / Réinitialisation", key="reset_db_btn"):
+    if st.button("🔄 Lancer la Synchronisation / Réinitialisation", key="reset_db_btn", use_container_width=True):
         import init_db
         with st.spinner("Rechargement des données depuis Excel..."):
             init_db.init_database_from_excel(force=True)
-        st.success("🎉 Base de données réinitialisée avec succès à partir de l'Excel !")
+        st.success("🎉 Base de données réinitialisée avec succès !")
         st.rerun()
         
     st.markdown("---")
-    st.markdown("#### ℹ️ Informations sur le Système")
     conn = db.get_connection()
     citerne_count = conn.execute("SELECT COUNT(*) FROM citernes").fetchone()[0]
     etape_count = conn.execute("SELECT COUNT(*) FROM etapes").fetchone()[0]
@@ -559,12 +606,9 @@ elif mode == "⚙️ Configuration & Synchro":
     conn.close()
     
     st.json({
-        "Application": "SEFACAR Tank Progress Digitalization",
-        "Theme": "Light Executive",
-        "Authentication": "Secured via Environment Variables / Secrets",
-        "Database Engine": "SQLite 3",
+        "Application": "SEFACAR Mobile Optimized v2.0",
         "Total Citernes": citerne_count,
         "Total Étapes Cataloguées": etape_count,
-        "Total Enregistrements d'Avancement": progress_count,
-        "Dernière Synchronisation System": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        "Total Enregistrements": progress_count,
+        "Dernière Maj": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     })
