@@ -299,8 +299,7 @@ if mode == "📱 Mode Tournée (Terrain)":
             categories = progress_df['category'].unique()
             
             with st.form(key=f"form_progress_{selected_code}"):
-                # Top Sticky-like submit button
-                top_save = st.form_submit_button("🚀 Enregistrer les Modifications", use_container_width=True)
+                top_save = st.form_submit_button("🚀 Enregistrer la Tournée (Haut)", use_container_width=True)
                 st.markdown("<br>", unsafe_allow_html=True)
                 
                 step_updates = {}
@@ -346,7 +345,7 @@ if mode == "📱 Mode Tournée (Terrain)":
                             step_updates[s_id] = (new_pct, new_note)
                             st.markdown("<hr style='margin: 6px 0; border-color: #f1f5f9;'>", unsafe_allow_html=True)
                             
-                bottom_save = st.form_submit_button("🚀 Enregistrer les Modifications", use_container_width=True)
+                bottom_save = st.form_submit_button("🚀 Enregistrer la Tournée", use_container_width=True)
                 
                 if top_save or bottom_save:
                     for s_id, (u_pct, u_note) in step_updates.items():
