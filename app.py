@@ -5,6 +5,7 @@ import plotly.express as px
 import plotly.graph_objects as io
 from datetime import datetime
 import io as python_io
+import os
 import db
 
 # Streamlit Page Config
@@ -117,6 +118,57 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# Authentication Function
+def check_password():
+    def password_entered():
+        correct_password = "MAN2026"
+        try:
+            if "APP_PASSWORD" in st.secrets:
+                correct_password = st.secrets["APP_PASSWORD"]
+        except Exception:
+            pass
+        if os.environ.get("APP_PASSWORD"):
+            correct_password = os.environ.get("APP_PASSWORD")
+
+        if st.session_state.get("password_input") == correct_password:
+            st.session_state["authenticated"] = True
+            if "password_input" in st.session_state:
+                del st.session_state["password_input"]
+        else:
+            st.session_state["authenticated"] = False
+
+    if "authenticated" not in st.session_state:
+        st.session_state["authenticated"] = False
+
+    if not st.session_state["authenticated"]:
+        st.markdown("""
+        <div style="max-width: 480px; margin: 40px auto 20px auto; background: #ffffff; border: 1px solid #e2e8f0; border-top: 6px solid #1e40af; border-radius: 12px; padding: 30px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.06);">
+            <h2 style="color: #0f172a; margin-bottom: 4px; font-size: 26px;">🚛 SEFACAR</h2>
+            <h4 style="color: #1e40af; font-size: 15px; margin-top: 0;">Plateforme de Suivi des Citernes</h4>
+            <hr style="margin: 20px 0; border-color: #f1f5f9;">
+            <p style="color: #64748b; font-size: 13px; margin-bottom: 10px;">Veuillez entrer le code d'accès sécurisé pour accéder au système.</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        c1, c2, c3 = st.columns([1, 2, 1])
+        with c2:
+            st.text_input(
+                "🔑 Code d'Accès",
+                type="password",
+                on_change=password_entered,
+                key="password_input",
+                placeholder="Code d'accès...",
+                label_visibility="collapsed"
+            )
+            btn = st.button("🔓 Connexion", use_container_width=True, on_click=password_entered)
+            if btn and not st.session_state.get("authenticated"):
+                st.error("❌ Code d'accès incorrect. Veuillez réessayer.")
+        return False
+    return True
+
+if not check_password():
+    st.stop()
+
 # Application Header
 st.markdown("""
 <div class="header-card">
@@ -145,7 +197,11 @@ mode = st.sidebar.radio(
 )
 
 st.sidebar.markdown("---")
-st.sidebar.markdown("<div style='font-size: 12px; color: #64748b;'><b>SEFACAR v2.0 Light Edition</b><br>Gestionnaire de Suivi des Citernes</div>", unsafe_allow_html=True)
+if st.sidebar.button("🔒 Déconnexion", use_container_width=True):
+    st.session_state["authenticated"] = False
+    st.rerun()
+
+st.sidebar.markdown("<div style='font-size: 12px; color: #64748b; margin-top: 15px;'><b>SEFACAR v2.0 Light Edition</b><br>Gestionnaire de Suivi des Citernes</div>", unsafe_allow_html=True)
 
 # ==========================================
 # MODULE 1: MODE TOURNÉE (TERRAIN / MOBILE)
@@ -497,6 +553,7 @@ elif mode == "⚙️ Configuration & Synchro":
     st.json({
         "Application": "SEFACAR Tank Progress Digitalization",
         "Theme": "Light Executive",
+        "Authentication": "Secured",
         "Database Engine": "SQLite 3",
         "Total Citernes": citerne_count,
         "Total Étapes Cataloguées": etape_count,
