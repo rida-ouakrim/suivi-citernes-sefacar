@@ -2,6 +2,7 @@ import sqlite3
 import pandas as pd
 from datetime import datetime
 import os
+import io as python_io
 
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "suivi_citernes.db")
 
@@ -103,8 +104,10 @@ def get_citerne_progress(citerne_code):
     JOIN citernes c ON c.type = e.citerne_type
     LEFT JOIN suivi_progress p ON p.citerne_code = c.code AND p.step_id = e.id
     WHERE c.code = ?
-    ORDER BY e.step_order
+    ORDER e.step_order
     """
+    # Fix order by query: ORDER BY e.step_order
+    query = query.replace("ORDER e.step_order", "ORDER BY e.step_order")
     df = pd.read_sql_query(query, conn, params=(citerne_code,))
     conn.close()
     return df
@@ -218,13 +221,11 @@ def export_full_matrix(citerne_type):
     conn = get_connection()
     
     etapes = get_etapes(citerne_type)
-    citernes = get_all_citernes(citerne_type)
     
     query = """
     SELECT 
         c.code as Citerne,
         e.step_order,
-        e.step_name,
         COALESCE(p.completion_pct, 0.0) as completion
     FROM citernes c
     JOIN etapes e ON e.citerne_type = c.type
@@ -234,16 +235,144 @@ def export_full_matrix(citerne_type):
     p_df = pd.read_sql_query(query, conn, params=(citerne_type,))
     conn.close()
     
-    pivot = p_df.pivot(index='Citerne', columns='step_name', values='completion')
+    # Pivot on unique step_order to prevent duplicates
+    pivot = p_df.pivot(index='Citerne', columns='step_order', values='completion')
     
-    # Order columns by step_order
-    step_order_names = etapes['step_name'].tolist()
-    pivot = pivot.reindex(columns=step_order_names)
+    # Rename columns to step_name
+    step_names_dict = dict(zip(etapes['step_order'], etapes['step_name']))
+    pivot = pivot.rename(columns=step_names_dict)
     
-    summary = get_summary_dataframe(citerne_type).set_index('code')
+    return pivot
+
+def write_cell_safely(ws, row, col, value, fill=None, font=None, alignment=None, border=None, number_format=None):
+    cell = ws.cell(row=row, column=col)
+    if type(cell).__name__ == 'MergedCell':
+        for merged_range in ws.merged_cells.ranges:
+            if merged_range.bounds[0] <= col <= merged_range.bounds[2] and \
+               merged_range.bounds[1] <= row <= merged_range.bounds[3]:
+                cell = ws.cell(row=merged_range.bounds[1], column=merged_range.bounds[0])
+                break
+                
+    cell.value = value
+    if fill:
+        cell.fill = fill
+    if font:
+        cell.font = font
+    if alignment:
+        cell.alignment = alignment
+    if border:
+        cell.border = border
+    if number_format:
+        cell.number_format = number_format
+    return cell
+
+def generate_styled_excel_report(export_type="TOUS"):
+    import openpyxl
+    from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
     
-    matrix = summary[['type', 'statut', 'global_pct', 'comments', 'updated_at']].copy()
-    matrix.columns = ['Type', 'Statut', 'Avancement Global (%)', 'Commentaires', 'Dernière Maj']
+    excel_template_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "SUIVI CITERNE 2107.xlsx")
+    wb = openpyxl.load_workbook(excel_template_path)
     
-    final_df = pd.concat([matrix, pivot], axis=1)
-    return final_df
+    sheets_to_process = []
+    if export_type == "TOUS":
+        sheets_to_process = [("CARBURANT", 7, 4, 3), ("EAU", 11, 5, 4)]
+    elif export_type == "CARBURANT":
+        sheets_to_process = [("CARBURANT", 7, 4, 3)]
+        if "EAU" in wb.sheetnames:
+            wb.remove(wb["EAU"])
+    elif export_type == "EAU":
+        sheets_to_process = [("EAU", 11, 5, 4)]
+        if "CARBURANT" in wb.sheetnames:
+            wb.remove(wb["CARBURANT"])
+            
+    # Styling definitions
+    thin_border = Border(
+        left=Side(style='thin', color='C0C0C0'),
+        right=Side(style='thin', color='C0C0C0'),
+        top=Side(style='thin', color='C0C0C0'),
+        bottom=Side(style='thin', color='C0C0C0')
+    )
+    
+    green_fill = PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid")
+    green_font = Font(name="Calibri", size=9, bold=True, color="006100")
+    
+    yellow_fill = PatternFill(start_color="FFEB9C", end_color="FFEB9C", fill_type="solid")
+    yellow_font = Font(name="Calibri", size=9, bold=True, color="9C6500")
+    
+    white_fill = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
+    white_font = Font(name="Calibri", size=9, color="808080")
+    
+    for sheet_name, start_row, code_col, comment_col in sheets_to_process:
+        ws = wb[sheet_name]
+        
+        citernes = get_all_citernes(sheet_name)
+        etapes = get_etapes(sheet_name)
+        
+        # Read current status from DB
+        conn = get_connection()
+        query = """
+        SELECT citerne_code, step_id, completion_pct
+        FROM suivi_progress
+        """
+        progress_df = pd.read_sql_query(query, conn)
+        conn.close()
+        
+        # Map step_id to step_order
+        etape_id_to_order = dict(zip(etapes['id'], etapes['step_order']))
+        
+        # Loop through rows starting from start_row
+        row_idx = start_row
+        for i, cit_row in citernes.iterrows():
+            citerne_code = cit_row['code']
+            citerne_comment = cit_row['comments']
+            
+            # Write Citerne Code
+            write_cell_safely(ws, row_idx, code_col, citerne_code, font=Font(name="Calibri", size=9, bold=True))
+            
+            # Write Comment
+            write_cell_safely(ws, row_idx, comment_col, citerne_comment, font=Font(name="Calibri", size=9))
+            
+            # Get progress for this Citerne
+            cit_prog = progress_df[progress_df['citerne_code'] == citerne_code]
+            prog_dict = {}
+            for _, cp_row in cit_prog.iterrows():
+                step_order = etape_id_to_order.get(cp_row['step_id'])
+                if step_order:
+                    prog_dict[step_order] = cp_row['completion_pct']
+            
+            # Write values for each step column
+            for step_order in range(1, len(etapes) + 1):
+                col_idx = code_col + step_order
+                pct = prog_dict.get(step_order, 0.0)
+                
+                # Format cell value (1 for 100%, 0.8 for 80%, etc.)
+                if pct >= 99.9:
+                    val = 1.0
+                    fill = green_fill
+                    font = green_font
+                elif pct > 0:
+                    val = float(pct / 100.0)
+                    fill = yellow_fill
+                    font = yellow_font
+                else:
+                    val = 0.0
+                    fill = white_fill
+                    font = white_font
+                    
+                write_cell_safely(
+                    ws, 
+                    row_idx, 
+                    col_idx, 
+                    val, 
+                    fill=fill, 
+                    font=font, 
+                    alignment=Alignment(horizontal='center', vertical='center'),
+                    border=thin_border,
+                    number_format='0%'
+                )
+                
+            row_idx += 1
+            
+    output = python_io.BytesIO()
+    wb.save(output)
+    return output.getvalue()

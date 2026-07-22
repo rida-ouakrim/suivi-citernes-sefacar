@@ -465,37 +465,73 @@ elif mode == "📊 Tableau de Bord (Admin)":
         st.plotly_chart(fig_pie, use_container_width=True)
         
     st.markdown("---")
-    st.markdown("#### 📋 Matrice des Citernes")
     
-    col_t1, col_t2 = st.columns([1, 2])
-    with col_t1:
-        filter_status_table = st.selectbox("Statut", ["Tous", "En cours", "Non commencé", "Terminé"], key="table_status_filter")
-    with col_t2:
-        search_table = st.text_input("🔍 Rechercher", key="table_search")
-        
-    df_table_display = df_summary.copy()
-    if filter_status_table != "Tous":
-        df_table_display = df_table_display[df_table_display['statut'] == filter_status_table]
-    if search_table:
-        df_table_display = df_table_display[df_table_display['code'].str.contains(search_table.strip(), case=False)]
-        
-    df_table_display = df_table_display[['code', 'type', 'statut', 'global_pct', 'completed_hours', 'total_cadence', 'comments', 'updated_at']]
-    df_table_display.columns = ['Code Citerne', 'Type', 'Statut', 'Avancement (%)', 'Heures Complétées', 'Total Cadence (h)', 'Observations', 'Dernière Maj']
+    # Tabs for different administrative views
+    tab_summary, tab_matrix = st.tabs(["📋 Liste & Résumés", "🔲 Matrice d'Avancement (Vue Atelier)"])
     
-    st.dataframe(
-        df_table_display,
-        use_container_width=True,
-        column_config={
-            "Avancement (%)": st.column_config.ProgressColumn(
-                "Avancement (%)",
-                help="Pourcentage global d'avancement pondéré",
-                format="%.1f%%",
-                min_value=0,
-                max_value=100,
-            ),
-        },
-        hide_index=True
-    )
+    with tab_summary:
+        st.markdown("#### 📋 Liste d'Avancement des Citernes")
+        col_t1, col_t2 = st.columns([1, 2])
+        with col_t1:
+            filter_status_table = st.selectbox("Statut", ["Tous", "En cours", "Non commencé", "Terminé"], key="table_status_filter")
+        with col_t2:
+            search_table = st.text_input("🔍 Rechercher", key="table_search")
+            
+        df_table_display = df_summary.copy()
+        if filter_status_table != "Tous":
+            df_table_display = df_table_display[df_table_display['statut'] == filter_status_table]
+        if search_table:
+            df_table_display = df_table_display[df_table_display['code'].str.contains(search_table.strip(), case=False)]
+            
+        df_table_display = df_table_display[['code', 'type', 'statut', 'global_pct', 'completed_hours', 'total_cadence', 'comments', 'updated_at']]
+        df_table_display.columns = ['Code Citerne', 'Type', 'Statut', 'Avancement (%)', 'Heures Complétées', 'Total Cadence (h)', 'Observations', 'Dernière Maj']
+        
+        st.dataframe(
+            df_table_display,
+            use_container_width=True,
+            column_config={
+                "Avancement (%)": st.column_config.ProgressColumn(
+                    "Avancement (%)",
+                    help="Pourcentage global d'avancement pondéré",
+                    format="%.1f%%",
+                    min_value=0,
+                    max_value=100,
+                ),
+            },
+            hide_index=True
+        )
+
+    with tab_matrix:
+        st.markdown("#### 🔲 Matrice d'Avancement Réal-Time (Vue Atelier)")
+        st.caption("Vue matricielle avec code couleur identique à l'Excel (Vert = 100%, Jaune = En cours, Blanc = 0%).")
+        
+        matrix_type = st.radio("Afficher la matrice pour :", ["⛽ CARBURANT", "💧 EAU"], horizontal=True, key="matrix_type_radio")
+        selected_matrix_type = "CARBURANT" if "CARBURANT" in matrix_type else "EAU"
+        
+        # Load and pivot matrix from DB
+        matrix_df = db.export_full_matrix(selected_matrix_type)
+        
+        # Style function for Pandas Styler to match the Excel design
+        def style_matrix_cells(val):
+            try:
+                fval = float(val)
+                if fval >= 99.9:
+                    return 'background-color: #c6efce; color: #006100; font-weight: bold; text-align: center;'
+                elif fval > 0.0:
+                    return 'background-color: #ffeb9c; color: #9c6500; font-weight: bold; text-align: center;'
+                else:
+                    return 'background-color: #ffffff; color: #cbd5e1; text-align: center;'
+            except:
+                return 'text-align: center;'
+                
+        # Format the display values as integer percentages (e.g. 100%, 0%, 50%)
+        formatted_style_df = matrix_df.style.map(style_matrix_cells).format(formatter="{:.0f}%")
+        
+        st.dataframe(
+            formatted_style_df,
+            use_container_width=True,
+            height=500
+        )
 
 # ==========================================
 # MODULE 3: EXPORTATION & RAPPORT DU JOUR
@@ -509,20 +545,15 @@ elif mode == "📥 Exportation & Rapport du Jour":
     st.markdown("<br>", unsafe_allow_html=True)
     
     if st.button("📊 Générer le Rapport Excel Complet", use_container_width=True):
-        output = python_io.BytesIO()
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            if export_type in ["TOUS (Carburant & Eau)", "CARBURANT uniquement"]:
-                carb_matrix = db.export_full_matrix("CARBURANT")
-                carb_matrix.to_excel(writer, sheet_name="CARBURANT")
-            if export_type in ["TOUS (Carburant & Eau)", "EAU uniquement"]:
-                eau_matrix = db.export_full_matrix("EAU")
-                eau_matrix.to_excel(writer, sheet_name="EAU")
-                
-            filter_t = None if export_type == "TOUS (Carburant & Eau)" else ("CARBURANT" if "CARBURANT" in export_type else "EAU")
-            synthese_df = db.get_summary_dataframe(filter_t)
-            synthese_df.to_excel(writer, sheet_name="SYNTHESE_GENERAL", index=False)
+        type_code = "TOUS"
+        if export_type == "CARBURANT uniquement":
+            type_code = "CARBURANT"
+        elif export_type == "EAU uniquement":
+            type_code = "EAU"
             
-        excel_data = output.getvalue()
+        with st.spinner("Génération du rapport Excel avec styles et cadences..."):
+            excel_data = db.generate_styled_excel_report(type_code)
+            
         date_str = datetime.now().strftime("%Y-%m-%d")
         file_name = f"SEFACAR_Suivi_Citernes_Etat_du_{date_str}.xlsx"
         
