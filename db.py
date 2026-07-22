@@ -104,10 +104,8 @@ def get_citerne_progress(citerne_code):
     JOIN citernes c ON c.type = e.citerne_type
     LEFT JOIN suivi_progress p ON p.citerne_code = c.code AND p.step_id = e.id
     WHERE c.code = ?
-    ORDER e.step_order
+    ORDER BY e.step_order
     """
-    # Fix order by query: ORDER BY e.step_order
-    query = query.replace("ORDER e.step_order", "ORDER BY e.step_order")
     df = pd.read_sql_query(query, conn, params=(citerne_code,))
     conn.close()
     return df
@@ -238,10 +236,12 @@ def export_full_matrix(citerne_type):
     # Pivot on unique step_order to prevent duplicates
     pivot = p_df.pivot(index='Citerne', columns='step_order', values='completion')
     
-    # Rename columns to step_name
-    step_names_dict = dict(zip(etapes['step_order'], etapes['step_name']))
+    # Rename columns to unique format "step_order. step_name" to support Pandas Styler
+    step_names_dict = {}
+    for _, et_row in etapes.iterrows():
+        step_names_dict[et_row['step_order']] = f"{et_row['step_order']}. {et_row['step_name']}"
+        
     pivot = pivot.rename(columns=step_names_dict)
-    
     return pivot
 
 def write_cell_safely(ws, row, col, value, fill=None, font=None, alignment=None, border=None, number_format=None):
