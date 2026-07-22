@@ -133,6 +133,91 @@ st.markdown("""
     h4 {
         font-size: 15px !important;
     }
+
+    /* ==========================================
+       EXCEL MATRIX DISPLAY STYLES
+       ========================================== */
+    .matrix-container {
+        overflow-x: auto;
+        max-width: 100%;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        background-color: #ffffff;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        margin-top: 15px;
+        margin-bottom: 15px;
+    }
+    .excel-table {
+        border-collapse: collapse;
+        font-family: 'Calibri', 'Arial', sans-serif;
+        font-size: 10.5px;
+        width: 100%;
+    }
+    .excel-table th, .excel-table td {
+        border: 1px solid #cbd5e1;
+        padding: 4px 6px;
+        text-align: center;
+        vertical-align: middle;
+        white-space: nowrap;
+    }
+    .excel-table th {
+        background-color: #f8fafc;
+        color: #0f172a;
+        font-weight: bold;
+    }
+    
+    /* Sticky Left Columns for Scrolling */
+    .excel-table .sticky-col-1 {
+        position: sticky;
+        left: 0;
+        background-color: #f8fafc !important;
+        z-index: 10;
+        border-right: 2px solid #94a3b8 !important;
+        min-width: 140px;
+        max-width: 150px;
+        text-align: left;
+        font-weight: normal;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .excel-table .sticky-col-2 {
+        position: sticky;
+        left: 140px; /* Col 1 width */
+        background-color: #f1f5f9 !important;
+        z-index: 10;
+        border-right: 3px solid #1e40af !important;
+        font-weight: bold;
+        min-width: 80px;
+        max-width: 80px;
+        color: #1e40af;
+    }
+    
+    /* Z-Indices for Headers & Body */
+    .excel-table thead tr th {
+        position: sticky;
+        top: 0;
+        background-color: #f8fafc;
+        z-index: 5;
+    }
+    
+    /* Sticky Intersection Header Cells */
+    .excel-table thead tr th.sticky-col-1 {
+        z-index: 25;
+    }
+    .excel-table thead tr th.sticky-col-2 {
+        z-index: 25;
+        border-right: 3px solid #1e40af !important;
+    }
+    
+    /* Hover and general highlights */
+    .excel-table tbody tr:hover td {
+        filter: brightness(0.97);
+    }
+    .excel-table tbody tr:hover td.sticky-col-1,
+    .excel-table tbody tr:hover td.sticky-col-2 {
+        background-color: #e2e8f0 !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -503,35 +588,14 @@ elif mode == "📊 Tableau de Bord (Admin)":
 
     with tab_matrix:
         st.markdown("#### 🔲 Matrice d'Avancement Réal-Time (Vue Atelier)")
-        st.caption("Vue matricielle avec code couleur identique à l'Excel (Vert = 100%, Jaune = En cours, Blanc = 0%).")
+        st.caption("Vue matricielle dynamique identique à l'Excel avec en-têtes imbriqués et colonnes de gauche figées (faites défiler vers la droite).")
         
         matrix_type = st.radio("Afficher la matrice pour :", ["⛽ CARBURANT", "💧 EAU"], horizontal=True, key="matrix_type_radio")
         selected_matrix_type = "CARBURANT" if "CARBURANT" in matrix_type else "EAU"
         
-        # Load and pivot matrix from DB
-        matrix_df = db.export_full_matrix(selected_matrix_type)
-        
-        # Style function for Pandas Styler to match the Excel design
-        def style_matrix_cells(val):
-            try:
-                fval = float(val)
-                if fval >= 99.9:
-                    return 'background-color: #c6efce; color: #006100; font-weight: bold; text-align: center;'
-                elif fval > 0.0:
-                    return 'background-color: #ffeb9c; color: #9c6500; font-weight: bold; text-align: center;'
-                else:
-                    return 'background-color: #ffffff; color: #cbd5e1; text-align: center;'
-            except:
-                return 'text-align: center;'
-                
-        # Format the display values as integer percentages (e.g. 100%, 0%, 50%)
-        formatted_style_df = matrix_df.style.map(style_matrix_cells).format(formatter="{:.0f}%")
-        
-        st.dataframe(
-            formatted_style_df,
-            use_container_width=True,
-            height=500
-        )
+        # Render the custom Excel-like styled HTML grid
+        html_view = db.get_html_matrix_view(selected_matrix_type)
+        st.markdown(html_view, unsafe_allow_html=True)
 
 # ==========================================
 # MODULE 3: EXPORTATION & RAPPORT DU JOUR

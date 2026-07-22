@@ -376,3 +376,140 @@ def generate_styled_excel_report(export_type="TOUS"):
     output = python_io.BytesIO()
     wb.save(output)
     return output.getvalue()
+
+def get_html_matrix_view(citerne_type):
+    import openpyxl
+    
+    excel_template_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "SUIVI CITERNE 2107.xlsx")
+    wb = openpyxl.load_workbook(excel_template_path, data_only=True)
+    ws = wb[citerne_type]
+    
+    if citerne_type == "CARBURANT":
+        header_start, header_end = 2, 5
+        cadence_row = 6
+        comment_col = 3
+        code_col = 4
+        max_col = 63
+    else:
+        header_start, header_end = 6, 9
+        cadence_row = 10
+        comment_col = 4
+        code_col = 5
+        max_col = 62
+        
+    citernes = get_all_citernes(citerne_type)
+    
+    conn = get_connection()
+    etapes = pd.read_sql_query("SELECT id, step_order FROM etapes WHERE citerne_type = ? ORDER BY step_order", conn, params=(citerne_type,))
+    progress_df = pd.read_sql_query("SELECT citerne_code, step_id, completion_pct FROM suivi_progress", conn)
+    conn.close()
+    
+    etape_id_to_order = dict(zip(etapes['id'], etapes['step_order']))
+    
+    def get_merged_cell_info(ws, row, col):
+        for mr in ws.merged_cells.ranges:
+            if mr.bounds[0] <= col <= mr.bounds[2] and mr.bounds[1] <= row <= mr.bounds[3]:
+                is_top_left = (row == mr.bounds[1] and col == mr.bounds[0])
+                colspan = mr.bounds[2] - mr.bounds[0] + 1
+                rowspan = mr.bounds[3] - mr.bounds[1] + 1
+                return True, is_top_left, rowspan, colspan
+        return False, True, 1, 1
+
+    html = []
+    html.append('<div class="matrix-container">')
+    html.append('<table class="excel-table">')
+    
+    html.append('<colgroup>')
+    html.append('<col style="width: 140px; min-width: 140px; max-width: 150px;">')
+    html.append('<col style="width: 80px; min-width: 80px; max-width: 80px;">')
+    for c in range(code_col + 1, max_col + 1):
+        html.append('<col style="width: 75px; min-width: 75px;">')
+    html.append('</colgroup>')
+    
+    html.append('<thead>')
+    for r in range(header_start, header_end + 1):
+        html.append('<tr>')
+        for c in range(comment_col, max_col + 1):
+            is_merged, is_top_left, rspan, cspan = get_merged_cell_info(ws, r, c)
+            
+            val = ws.cell(row=r, column=c).value
+            val_str = str(val) if val is not None else ''
+            
+            classes = []
+            if c == comment_col:
+                classes.append("sticky-col-1")
+                val_str = "Observations / Notes" if not val_str else val_str
+            elif c == code_col:
+                classes.append("sticky-col-2")
+                val_str = "Citerne" if not val_str else val_str
+                
+            class_attr = f' class="{" ".join(classes)}"' if classes else ''
+            
+            if is_merged:
+                if is_top_left:
+                    html.append(f'<th rowspan="{rspan}" colspan="{cspan}"{class_attr}>{val_str}</th>')
+            else:
+                html.append(f'<th rowspan="1" colspan="1"{class_attr}>{val_str}</th>')
+        html.append('</tr>')
+    html.append('</thead>')
+    
+    html.append('<tbody>')
+    
+    # Cadence Row
+    html.append('<tr>')
+    for c in range(comment_col, max_col + 1):
+        val = ws.cell(row=cadence_row, column=c).value
+        val_str = str(val) if val is not None else ''
+        
+        classes = ["cadence-cell"]
+        if c == comment_col:
+            classes.append("sticky-col-1")
+            val_str = "Observations"
+        elif c == code_col:
+            classes.append("sticky-col-2")
+            val_str = "Cadence (h)"
+            
+        class_attr = f' class="{" ".join(classes)}"' if classes else ''
+        html.append(f'<td{class_attr} style="background-color: #f1f5f9; font-weight: 700; color: #1e3a8a;">{val_str}</td>')
+    html.append('</tr>')
+    
+    # Citernes Data
+    for i, cit_row in citernes.iterrows():
+        citerne_code = cit_row['code']
+        citerne_comment = cit_row['comments']
+        
+        cit_prog = progress_df[progress_df['citerne_code'] == citerne_code]
+        prog_dict = {}
+        for _, cp_row in cit_prog.iterrows():
+            step_order = etape_id_to_order.get(cp_row['step_id'])
+            if step_order:
+                prog_dict[step_order] = cp_row['completion_pct']
+                
+        html.append('<tr>')
+        for c in range(comment_col, max_col + 1):
+            if c == comment_col:
+                html.append(f'<td class="sticky-col-1" title="{citerne_comment}">{citerne_comment}</td>')
+            elif c == code_col:
+                html.append(f'<td class="sticky-col-2">{citerne_code}</td>')
+            else:
+                step_order = c - code_col
+                pct = prog_dict.get(step_order, 0.0)
+                
+                if pct >= 99.9:
+                    style_attr = ' style="background-color: #c6efce; color: #006100; font-weight: bold;"'
+                    pct_str = "100%"
+                elif pct > 0:
+                    style_attr = ' style="background-color: #ffeb9c; color: #9c6500; font-weight: bold;"'
+                    pct_str = f"{int(pct)}%"
+                else:
+                    style_attr = ' style="background-color: #ffffff; color: #cbd5e1;"'
+                    pct_str = "0%"
+                    
+                html.append(f'<td{style_attr}>{pct_str}</td>')
+        html.append('</tr>')
+        
+    html.append('</tbody>')
+    html.append('</table>')
+    html.append('</div>')
+    
+    return "\n".join(html)
